@@ -210,6 +210,29 @@ export async function fetchOrdersByDateRange(
   return rows;
 }
 
+export async function getOverduePendingOrders(
+  db: Database,
+  days: number = 3
+): Promise<any[]> {
+  const query = `
+    SELECT
+        o.id as order_id,
+        o.order_number,
+        o.created_at,
+        o.total_amount,
+        c.first_name || ' ' || c.last_name as customer_name,
+        c.email,
+        CAST(julianday('now') - julianday(o.created_at) AS INTEGER) as days_pending
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.id
+    WHERE o.status = 'pending'
+      AND julianday('now') - julianday(o.created_at) > ?
+    ORDER BY o.created_at ASC
+    `;
+
+  return db.all(query, [days]);
+}
+
 export async function getHighValueOrders(
   db: Database,
   minAmount: number = 500
